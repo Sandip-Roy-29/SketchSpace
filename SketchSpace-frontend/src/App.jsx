@@ -1,9 +1,9 @@
+import SketchCanvas from "./SketchCanvas"
+
 function App() {
 
   return (
-    <>
-      
-    </>
+    <SketchCanvas/>
   )
 }
 
