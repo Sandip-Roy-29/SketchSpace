@@ -7,27 +7,9 @@ const SketchCanvas = () => {
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
-  const [elements, setElements] = useState([
-    {
-      id: 1,
-      type: "rect",
-      x: 100,
-      y: 100,
-      width: 100,
-      height: 100,
-      color: "red",
-    },
-    {
-      id: 2,
-      type: "rect",
-      x: 300,
-      y: 200,
-      width: 150,
-      height: 100,
-      color: "blue",
-    },
-  ]);
-  const [isPanning, setIsPanning] = useState(false);
+  const [elements, setElements] = useState([]);
+  const [action, setAction] = useState("none");
+  const [tool,setTool] = useState("hand");
 
   // ================= DRAW =================
   useLayoutEffect(() => {
@@ -70,25 +52,56 @@ const SketchCanvas = () => {
 
   // ================= PAN =================
   const handleMouseDown = (e) => {
-    setIsPanning(true);
-    setStartPan({
-      x: e.clientX - offset.x,
-      y: e.clientY - offset.y,
-    });
+    const worldPos = toWorld(e.clientX,e.clientY,offset,scale);
+
+    if(tool === "hand"){
+      setAction("panning");
+      setStartPan({
+        x: e.clientX - offset.x,
+        y: e.clientY - offset.y,
+      });
+    }
+
+    else if(tool === "rectangle"){
+      setAction("drawing");
+      const newShaps = {
+        id: Date.now(),
+        type: "rect",
+        x: worldPos.x,
+        y: worldPos.y,
+        width: 0,
+        height: 0,
+        color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+      }; 
+      setElements((prev) => [...prev,newShaps]);
+    }
   };
 
   const handleMouseMove = (e) => {
-    if (isPanning) {
+    const worldPos = toWorld(e.clientX,e.clientY,offset,scale)
+
+    if(action === "panning"){
       setOffset({
         x: e.clientX - startPan.x,
         y: e.clientY - startPan.y,
       });
-    } else {
-      return;
     }
+
+    else if(action === "drawing"){
+      setElements((prev) => {
+        const newElements = [...prev];
+        const currElements = newElements[newElements.length-1]
+
+        currElements.width = worldPos.x - currElements.x;
+        currElements.height = worldPos.y - currElements.y;
+
+        return newElements;
+      })
+    }
+
   };
 
-  const handleMouseUp = () => setIsPanning(false);
+  const handleMouseUp = () => setAction("none");
 
   // ================= ZOOM =================
   const handleWheel = (e) => {
@@ -107,27 +120,35 @@ const SketchCanvas = () => {
     });
   };
 
-  const addRandomShape = () => {
-    const newShaps = {
-      id: Date.now(),
-      type: "rect",
-      x: Math.random() * 500,
-      y: Math.random() * 500,
-      width: Math.random() * 100,
-      height: Math.random() * 100,
-      color: `hsl(${Math.random() * 360}, 70%, 50%)`, // Random Color
-    };
-    setElements([...elements, newShaps]);
-  };
-
   return (
     <>
-      <div style={{ position: "fixed", top: 10, left: 10, zIndex: 10 }}>
+      <div
+        style={{
+          position: "fixed",
+          top: 10,
+          left: 10,
+          zIndex: 10,
+          display: "flex",
+          gap: 10,
+        }}
+      >
         <button
-          onClick={addRandomShape}
-          style={{ padding: "10px 20px", fontSize: "16px", cursor: "pointer" }}
+          onClick={() => setTool("hand")}
+          style={{
+            background: tool === "hand" ? "#ddd" : "#fff",
+            padding: "10px",
+          }}
         >
-          + Add Random Box
+          ✋ Hand (Pan)
+        </button>
+        <button
+          onClick={() => setTool("rectangle")}
+          style={{
+            background: tool === "rectangle" ? "#ddd" : "#fff",
+            padding: "10px",
+          }}
+        >
+          ⬜ Rectangle
         </button>
       </div>
       <canvas
@@ -138,7 +159,7 @@ const SketchCanvas = () => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
-        style={{ display: "block", cursor: isPanning ? "grabbing" : "grab" }}
+        style={{ display: "block", cursor: tool === "hand" ? "grab" : "crosshair" }}
       />
     </>
   );
