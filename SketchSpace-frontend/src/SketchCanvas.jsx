@@ -1,5 +1,5 @@
 import { useRef, useState, useLayoutEffect } from "react";
-import { toWorld } from "./math";
+import { toWorld, getEllementAtPosition } from "./math";
 
 const SketchCanvas = () => {
   const canvasRef = useRef(null);
@@ -9,7 +9,9 @@ const SketchCanvas = () => {
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
   const [elements, setElements] = useState([]);
   const [action, setAction] = useState("none");
-  const [tool,setTool] = useState("hand");
+  const [tool, setTool] = useState("hand");
+  const [selectedId, setSelectedId] = useState(null);
+  const [dragOffset, setDragOffset] = useState({x:0,y:0})
 
   // ================= DRAW =================
   useLayoutEffect(() => {
@@ -45,24 +47,28 @@ const SketchCanvas = () => {
       if (el.type == "rect") {
         ctx.fillRect(el.x, el.y, el.width, el.height);
       }
+
+      if (el.id === selectedId) {
+        ctx.strokeStyle = "#0088ff";
+        ctx.lineWidth = 3 / scale;
+        ctx.strokeRect(el.x, el.y, el.width, el.height);
+      }
     });
 
     ctx.restore();
-  }, [scale, offset, elements]);
+  }, [scale, offset, elements, selectedId]);
 
   // ================= PAN =================
   const handleMouseDown = (e) => {
-    const worldPos = toWorld(e.clientX,e.clientY,offset,scale);
+    const worldPos = toWorld(e.clientX, e.clientY, offset, scale);
 
-    if(tool === "hand"){
+    if (tool === "hand") {
       setAction("panning");
       setStartPan({
         x: e.clientX - offset.x,
         y: e.clientY - offset.y,
       });
-    }
-
-    else if(tool === "rectangle"){
+    } else if (tool === "rectangle") {
       setAction("drawing");
       const newShaps = {
         id: Date.now(),
@@ -72,33 +78,61 @@ const SketchCanvas = () => {
         width: 0,
         height: 0,
         color: `hsl(${Math.random() * 360}, 70%, 50%)`,
-      }; 
-      setElements((prev) => [...prev,newShaps]);
+      };
+      setElements((prev) => [...prev, newShaps]);
+    } else if (tool === "selection") {
+      const selectedElement = getEllementAtPosition(
+        worldPos.x,
+        worldPos.y,
+        elements
+      );
+
+      if (selectedElement) {
+        setSelectedId(selectedElement.id);
+        setAction("moving")
+        setDragOffset({
+          x: worldPos.x - selectedElement.x,
+          y: worldPos.y - selectedElement.y
+        })
+      }else{
+        setSelectedId(null)
+        setAction("none")
+      }
     }
   };
 
   const handleMouseMove = (e) => {
-    const worldPos = toWorld(e.clientX,e.clientY,offset,scale)
+    const worldPos = toWorld(e.clientX, e.clientY, offset, scale);
 
-    if(action === "panning"){
+    if (action === "panning") {
       setOffset({
         x: e.clientX - startPan.x,
         y: e.clientY - startPan.y,
       });
-    }
-
-    else if(action === "drawing"){
+    } else if (action === "drawing") {
       setElements((prev) => {
         const newElements = [...prev];
-        const currElements = newElements[newElements.length-1]
+        const currElements = newElements[newElements.length - 1];
 
         currElements.width = worldPos.x - currElements.x;
         currElements.height = worldPos.y - currElements.y;
 
         return newElements;
-      })
+      });
     }
 
+    else if(action === "moving"){
+      setElements((prev) => prev.map(el => {
+        if(el.id === selectedId){
+          return{
+            ...el,
+            x: worldPos.x - dragOffset.x,
+            y: worldPos.y - dragOffset.y,
+          }
+        }
+        return el;
+      }))
+    }
   };
 
   const handleMouseUp = () => setAction("none");
@@ -133,19 +167,25 @@ const SketchCanvas = () => {
         }}
       >
         <button
-          onClick={() => setTool("hand")}
+          onClick={() => setTool("selection")}
           style={{
-            background: tool === "hand" ? "#ddd" : "#fff",
-            padding: "10px",
+            padding: 10,
+            background: tool === "selection" ? "#ddd" : "#fff",
           }}
         >
-          ✋ Hand (Pan)
+          ↖ Selection
+        </button>
+        <button
+          onClick={() => setTool("hand")}
+          style={{ padding: 10, background: tool === "hand" ? "#ddd" : "#fff" }}
+        >
+          ✋ Hand
         </button>
         <button
           onClick={() => setTool("rectangle")}
           style={{
+            padding: 10,
             background: tool === "rectangle" ? "#ddd" : "#fff",
-            padding: "10px",
           }}
         >
           ⬜ Rectangle
@@ -159,7 +199,6 @@ const SketchCanvas = () => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
-        style={{ display: "block", cursor: tool === "hand" ? "grab" : "crosshair" }}
       />
     </>
   );

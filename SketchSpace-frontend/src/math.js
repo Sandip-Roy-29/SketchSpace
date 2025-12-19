@@ -4,3 +4,20 @@ export const toWorld = (clientX, clientY, offset, scale) => {
     y: (clientY - offset.y) / scale,
   };
 };
+
+export const getEllementAtPosition = (x,y,elements) => {
+  for (let index = elements.length - 1; index >= 0; index--) {
+    const el = elements[index];
+
+    const minX = Math.min(el.x,el.x+el.width);
+    const maxX = Math.max(el.x,el.x+el.width);
+    const minY = Math.min(el.y,el.y+el.height);
+    const maxY = Math.max(el.y,el.y+el.height);
+
+    if (x>=minX && x<=maxX && y>=minY && y<=maxY) {
+      return el;
+    }
+    return null;
+    
+  }
+}
