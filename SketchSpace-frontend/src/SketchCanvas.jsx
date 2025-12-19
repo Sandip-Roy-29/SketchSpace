@@ -1,4 +1,4 @@
-import { useRef, useState, useLayoutEffect } from "react";
+import { useRef, useState, useLayoutEffect, useEffect } from "react";
 import { toWorld, getEllementAtPosition } from "./math";
 
 const SketchCanvas = () => {
@@ -7,11 +7,18 @@ const SketchCanvas = () => {
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
-  const [elements, setElements] = useState([]);
+  const [elements, setElements] = useState(() => {
+    const saved = localStorage.getItem("canvas-elements");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [action, setAction] = useState("none");
   const [tool, setTool] = useState("hand");
   const [selectedId, setSelectedId] = useState(null);
-  const [dragOffset, setDragOffset] = useState({x:0,y:0})
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    localStorage.setItem("canvas-elements", JSON.stringify(elements));
+  }, [elements]);
 
   // ================= DRAW =================
   useLayoutEffect(() => {
@@ -44,9 +51,7 @@ const SketchCanvas = () => {
 
     elements.forEach((el) => {
       ctx.fillStyle = el.color;
-      if (el.type == "rect") {
-        ctx.fillRect(el.x, el.y, el.width, el.height);
-      }
+      ctx.fillRect(el.x, el.y, el.width, el.height);
 
       if (el.id === selectedId) {
         ctx.strokeStyle = "#0088ff";
@@ -89,14 +94,14 @@ const SketchCanvas = () => {
 
       if (selectedElement) {
         setSelectedId(selectedElement.id);
-        setAction("moving")
+        setAction("moving");
         setDragOffset({
           x: worldPos.x - selectedElement.x,
-          y: worldPos.y - selectedElement.y
-        })
-      }else{
-        setSelectedId(null)
-        setAction("none")
+          y: worldPos.y - selectedElement.y,
+        });
+      } else {
+        setSelectedId(null);
+        setAction("none");
       }
     }
   };
@@ -119,19 +124,19 @@ const SketchCanvas = () => {
 
         return newElements;
       });
-    }
-
-    else if(action === "moving"){
-      setElements((prev) => prev.map(el => {
-        if(el.id === selectedId){
-          return{
-            ...el,
-            x: worldPos.x - dragOffset.x,
-            y: worldPos.y - dragOffset.y,
+    } else if (action === "moving") {
+      setElements((prev) =>
+        prev.map((el) => {
+          if (el.id === selectedId) {
+            return {
+              ...el,
+              x: worldPos.x - dragOffset.x,
+              y: worldPos.y - dragOffset.y,
+            };
           }
-        }
-        return el;
-      }))
+          return el;
+        })
+      );
     }
   };
 
@@ -152,6 +157,16 @@ const SketchCanvas = () => {
       x: e.clientX - worldPos.x * newScale,
       y: e.clientY - worldPos.y * newScale,
     });
+  };
+
+  const getCursor = () => {
+    if (tool == "hand") {
+      return action === "panning" ? "grabbing" : "grab";
+    }
+    if (tool === "selection") {
+      return "default";
+    }
+    return "crosshair";
   };
 
   return (
@@ -190,6 +205,15 @@ const SketchCanvas = () => {
         >
           ⬜ Rectangle
         </button>
+        <button
+          onClick={() => {
+            setElements([]);
+            localStorage.removeItem("canvas-elements");
+          }}
+          style={{ padding: "10px", background: "#ffdddd" }}
+        >
+          🗑️ Clear
+        </button>
       </div>
       <canvas
         ref={canvasRef}
@@ -199,6 +223,7 @@ const SketchCanvas = () => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
+        style={{ display: "block", cursor: getCursor() }}
       />
     </>
   );
