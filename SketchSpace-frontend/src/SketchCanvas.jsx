@@ -1,5 +1,6 @@
 import { useRef, useState, useLayoutEffect, useEffect } from "react";
 import { toWorld, getEllementAtPosition } from "./math";
+import { Toolbar } from "./Toolbar";
 
 const SketchCanvas = () => {
   const canvasRef = useRef(null);
@@ -171,50 +172,14 @@ const SketchCanvas = () => {
 
   return (
     <>
-      <div
-        style={{
-          position: "fixed",
-          top: 10,
-          left: 10,
-          zIndex: 10,
-          display: "flex",
-          gap: 10,
+      <Toolbar
+        tool={tool}
+        setTool={setTool}
+        onClear={() => {
+          setElements([]);
+          localStorage.removeItem("canvas-elements");
         }}
-      >
-        <button
-          onClick={() => setTool("selection")}
-          style={{
-            padding: 10,
-            background: tool === "selection" ? "#ddd" : "#fff",
-          }}
-        >
-          ↖ Selection
-        </button>
-        <button
-          onClick={() => setTool("hand")}
-          style={{ padding: 10, background: tool === "hand" ? "#ddd" : "#fff" }}
-        >
-          ✋ Hand
-        </button>
-        <button
-          onClick={() => setTool("rectangle")}
-          style={{
-            padding: 10,
-            background: tool === "rectangle" ? "#ddd" : "#fff",
-          }}
-        >
-          ⬜ Rectangle
-        </button>
-        <button
-          onClick={() => {
-            setElements([]);
-            localStorage.removeItem("canvas-elements");
-          }}
-          style={{ padding: "10px", background: "#ffdddd" }}
-        >
-          🗑️ Clear
-        </button>
-      </div>
+      />
       <canvas
         ref={canvasRef}
         width={window.innerWidth}
