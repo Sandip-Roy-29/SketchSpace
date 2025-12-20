@@ -35,6 +35,15 @@ export const Toolbar = ({ tool, setTool, onClear }) => {
         ⬜ Rectangle
       </button>
       <button
+        onClick={() => setTool("pencil")}
+        style={{
+          padding: 10,
+          background: tool === "pencil" ? "#ddd" : "#fff",
+        }}
+      >
+        ✏️ Pencil
+      </button>
+      <button
         onClick={onClear}
         style={{ padding: "10px", background: "#ffdddd" }}
       >

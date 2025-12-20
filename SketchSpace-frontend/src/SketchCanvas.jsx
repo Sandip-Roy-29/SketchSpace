@@ -51,13 +51,28 @@ const SketchCanvas = () => {
     ctx.stroke();
 
     elements.forEach((el) => {
-      ctx.fillStyle = el.color;
-      ctx.fillRect(el.x, el.y, el.width, el.height);
+      if (el.type === "rect") {
+        ctx.fillStyle = el.color;
+        ctx.fillRect(el.x, el.y, el.width, el.height);
+      }
 
       if (el.id === selectedId) {
         ctx.strokeStyle = "#0088ff";
         ctx.lineWidth = 3 / scale;
         ctx.strokeRect(el.x, el.y, el.width, el.height);
+      }
+
+      if (el.type === "pencil") {
+        ctx.strokeStyle = el.color || "black";
+        ctx.lineWidth = 3;
+        (ctx.lineCap = "round"), (ctx.lineJoin = "round");
+
+        ctx.beginPath();
+        if (el.points.length > 0) {
+          ctx.moveTo(el.points[0].x, el.points[0].y);
+          el.points.forEach((point) => ctx.lineTo(point.x, point.y));
+        }
+        ctx.stroke();
       }
     });
 
@@ -86,6 +101,17 @@ const SketchCanvas = () => {
         color: `hsl(${Math.random() * 360}, 70%, 50%)`,
       };
       setElements((prev) => [...prev, newShaps]);
+    } else if (tool === "pencil") {
+      setAction("drawing");
+      const newElements = {
+        id: Date.now(),
+        type: "pencil",
+        points: [{ x: worldPos.x, y: worldPos.y }],
+        color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+      };
+
+      setElements((prev) => [...prev, newElements]);
+      setSelectedId(null);
     } else if (tool === "selection") {
       const selectedElement = getEllementAtPosition(
         worldPos.x,
@@ -95,11 +121,13 @@ const SketchCanvas = () => {
 
       if (selectedElement) {
         setSelectedId(selectedElement.id);
-        setAction("moving");
-        setDragOffset({
-          x: worldPos.x - selectedElement.x,
-          y: worldPos.y - selectedElement.y,
-        });
+        if (selectedElement.id === "rect") {
+          setAction("moving");
+          setDragOffset({
+            x: worldPos.x - selectedElement.x,
+            y: worldPos.y - selectedElement.y,
+          });
+        }
       } else {
         setSelectedId(null);
         setAction("none");
@@ -120,8 +148,17 @@ const SketchCanvas = () => {
         const newElements = [...prev];
         const currElements = newElements[newElements.length - 1];
 
-        currElements.width = worldPos.x - currElements.x;
-        currElements.height = worldPos.y - currElements.y;
+        if (currElements.type === "rect") {
+          currElements.width = worldPos.x - currElements.x;
+          currElements.height = worldPos.y - currElements.y;
+        }
+
+        if (currElements.type === "pencil") {
+          currElements.points = [
+            ...currElements.points,
+            { x: worldPos.x, y: worldPos.y },
+          ];
+        }
 
         return newElements;
       });
