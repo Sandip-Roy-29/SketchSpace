@@ -70,7 +70,21 @@ const SketchCanvas = () => {
         ctx.beginPath();
         if (el.points.length > 0) {
           ctx.moveTo(el.points[0].x, el.points[0].y);
-          el.points.forEach((point) => ctx.lineTo(point.x, point.y));
+          for (let index = 1; index < el.points.length-1; index++) {
+            const p1 = el.points[index];
+            const p2 = el.points[index+1]
+            
+            const midPoint = {
+              x: (p1.x + p2.x) / 2,
+              y: (p1.y + p2.y) /2
+            }
+
+            ctx.quadraticCurveTo(p1.x, p1.y, midPoint.x, midPoint.y);
+          }
+          if (el.points.length>1) {
+            const lastPoint = el.points[el.points.length-1]
+            ctx.lineTo(lastPoint.x, lastPoint.y)
+          }
         }
         ctx.stroke();
       }
