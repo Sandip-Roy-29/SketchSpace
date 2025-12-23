@@ -1,9 +1,10 @@
 import { useRef, useState, useLayoutEffect, useEffect } from "react";
-import { toWorld, getEllementAtPosition } from "./math";
+import { toWorld, getElementAtPosition } from "./math";
 import { Toolbar } from "./Toolbar";
 
 const SketchCanvas = () => {
   const canvasRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -16,10 +17,17 @@ const SketchCanvas = () => {
   const [tool, setTool] = useState("hand");
   const [selectedId, setSelectedId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [writingPos, setWritingPos] = useState({x:0,y:0});
 
   useEffect(() => {
     localStorage.setItem("canvas-elements", JSON.stringify(elements));
   }, [elements]);
+
+  useEffect(() => {
+    if (action === "writing" && textareaRef.current) {
+      setTimeout(() => textareaRef.current.focus(),0);
+    }
+  },[action])
 
   // ================= DRAW =================
   useLayoutEffect(() => {
@@ -88,6 +96,13 @@ const SketchCanvas = () => {
         }
         ctx.stroke();
       }
+
+      if(el.type === "text"){
+        ctx.textBaseLine = "top";
+        ctx.font = "24px sans-serif";
+        ctx.fillStyle = "black";
+        ctx.fillText(el.text,el.x,el.y);
+      }
     });
 
     ctx.restore();
@@ -127,7 +142,7 @@ const SketchCanvas = () => {
       setElements((prev) => [...prev, newElements]);
       setSelectedId(null);
     } else if (tool === "selection") {
-      const selectedElement = getEllementAtPosition(
+      const selectedElement = getElementAtPosition(
         worldPos.x,
         worldPos.y,
         elements
@@ -135,7 +150,7 @@ const SketchCanvas = () => {
 
       if (selectedElement) {
         setSelectedId(selectedElement.id);
-        if (selectedElement.id === "rect") {
+        if (selectedElement.type === "rect") {
           setAction("moving");
           setDragOffset({
             x: worldPos.x - selectedElement.x,
@@ -146,6 +161,14 @@ const SketchCanvas = () => {
         setSelectedId(null);
         setAction("none");
       }
+    }else if(tool === "text"){
+      setAction("writing");
+      setWritingPos({
+        screenX: e.clientX,
+        screenY: e.clientY,
+        worldX: worldPos.x,
+        worldY: worldPos.y,
+      })
     }
   };
 
@@ -192,7 +215,10 @@ const SketchCanvas = () => {
     }
   };
 
-  const handleMouseUp = () => setAction("none");
+  const handleMouseUp = () =>{
+    if(action === "writing") return;
+    setAction("none");
+    };
 
   // ================= ZOOM =================
   const handleWheel = (e) => {
@@ -209,6 +235,24 @@ const SketchCanvas = () => {
       x: e.clientX - worldPos.x * newScale,
       y: e.clientY - worldPos.y * newScale,
     });
+  };
+
+  const handleBlur = (e) => {
+    const text = e.target.value;
+    if (text.trim() !== "") {
+      setElements((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          type: "text",
+          x: writingPos.worldX,
+          y: writingPos.worldY,
+          text: text,
+        },
+      ]);
+    }
+    setAction("none");
+    setTool("selection"); // Switch back to selection tool after typing
   };
 
   const getCursor = () => {
@@ -231,6 +275,25 @@ const SketchCanvas = () => {
           localStorage.removeItem("canvas-elements");
         }}
       />
+      {action === "writing" && (
+        <textarea
+          ref={textareaRef}
+          onBlur={handleBlur}
+          style={{
+            position: "fixed",
+            top: writingPos.screenY,
+            left: writingPos.screenX,
+            background: "transparent",
+            border: "1px dashed #0088ff",
+            font: "24px sans-serif",
+            color: "black",
+            zIndex: 20,
+            outline: "none",
+            margin: 0,
+            padding: 0,
+          }}
+        />
+      )}
       <canvas
         ref={canvasRef}
         width={window.innerWidth}
