@@ -171,13 +171,13 @@ const SketchCanvas = () => {
         const newElements = [...prev];
         const curr = newElements[newElements.length - 1];
 
-        if (curr.type === "rect") {
-          curr.width = worldPos.x - curr.x;
-          curr.height = worldPos.y - curr.y;
+        const update = {
+          ...curr,
+          width: worldPos.x - curr.x,
+          height: worldPos.y - curr.y
         }
-        if (curr.type === "pencil") {
-          curr.points = [...curr.points, { x: worldPos.x, y: worldPos.y }];
-        }
+
+        newElements[newElements.length - 1] = update;
         return newElements;
       });
     } 
