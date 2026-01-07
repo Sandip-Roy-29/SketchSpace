@@ -104,6 +104,7 @@ const SketchCanvas = () => {
 
     if (tool === "hand") {
       setAction("panning");
+      setSelectedId("null");
       setStartPan({ x: e.clientX - offset.x, y: e.clientY - offset.y });
     } 
     else if (tool === "rect") {
@@ -132,32 +133,32 @@ const SketchCanvas = () => {
       setElements((prev) => [...prev,newShape]);
       setSelectedId(null);
     } 
-    else if (tool === "selection") {
-      const selectedElement = getElementAtPosition(worldPos.x, worldPos.y, elements);
-      if (selectedElement) {
-        setSelectedId(selectedElement.id);
-        
-        if (selectedElement.type === "rect") {
-          setAction("moving");
-          setDragOffset({
-            x: worldPos.x - selectedElement.x,
-            y: worldPos.y - selectedElement.y,
-          });
-        }
-      } else {
-        setSelectedId(null);
-        setAction("none");
-      }
-    } 
     else if (tool === "text") {
       setAction("writing");
+      setSelectedId(null);
       setWritingPos({
         screenX: e.clientX,
         screenY: e.clientY,
         worldX: worldPos.x,
         worldY: worldPos.y,
       });
+    }else{
+    const selectedElement = getElementAtPosition(worldPos.x, worldPos.y, elements);
+    if (selectedElement) {
+      setSelectedId(selectedElement.id);
+        
+      if (selectedElement.type === "rect") {
+        setAction("moving");
+        setDragOffset({
+          x: worldPos.x - selectedElement.x,
+          y: worldPos.y - selectedElement.y,
+        });
+      }
+    } else {
+      setSelectedId(null);
+      setAction("none");
     }
+  }
   };
 
   const handleMouseMove = (e) => {
