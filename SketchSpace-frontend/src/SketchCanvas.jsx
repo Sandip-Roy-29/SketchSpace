@@ -242,6 +242,14 @@ const SketchCanvas = () => {
     }
   },[offset,scale]);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+
+    canvas.addEventListener("wheel", handleWheel, { passive: false});
+    return () => canvas.removeEventListener("wheel", handleWheel);
+  },[handleWheel]);
+
   const handleBlur = (e) => {
     const text = e.target.value;
     if (text.trim() !== "") {
@@ -316,7 +324,6 @@ const SketchCanvas = () => {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onWheel={handleWheel}
         style={{ display: "block", cursor: getCursor() }}
       />
     </>
