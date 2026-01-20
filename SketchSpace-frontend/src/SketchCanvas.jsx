@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useLayoutEffect, useCallback } from "react";
 import { toWorld, getElementAtPosition } from "./math";
 import Toolbar from "./Toolbar";
+import rough from "roughjs";
 
 const SketchCanvas = () => {
   const canvasRef = useRef(null);
@@ -17,7 +18,7 @@ const SketchCanvas = () => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [writingPos, setWritingPos] = useState({ screenX: 0, screenY: 0, worldX:0, worldY: 0 });
   const [selectedId,setSelectedId] = useState(null);
-  const [tool,setTool] = useState("hand");
+  const [tool,setTool] = useState("none");
 
   const activeElement = elements.find(el => el.id === selectedId);
 
@@ -52,6 +53,7 @@ const SketchCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
+    const rc = rough.canvas(canvas);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
@@ -59,8 +61,13 @@ const SketchCanvas = () => {
 
     elements.forEach((el) => {
       if (el.type === "rect") {
-        ctx.fillStyle = el.color;
-        ctx.fillRect(el.x, el.y, el.width, el.height);
+        rc.rectangle(el.x,el.y,el.width,el.height,{
+          stroke: el.color,
+          strokeWidth: 2,
+          roughness: 2,
+          fill: el.color,
+          fillStyle: "zigzag-line",
+        });
         if (el.id === selectedId) {
             ctx.strokeStyle = "#0088ff";
             ctx.lineWidth = 3 / scale;
@@ -70,7 +77,8 @@ const SketchCanvas = () => {
       if (el.type === "pencil") {
         ctx.strokeStyle = el.color || "black";
         ctx.lineWidth = el.strokeWidth || 3;
-        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.lineCap = "round"; 
+        ctx.lineJoin = "round";
         ctx.beginPath();
         if (el.points.length > 0) {
           ctx.moveTo(el.points[0].x, el.points[0].y);
@@ -272,8 +280,8 @@ const SketchCanvas = () => {
   const getCursor = () => {
     if (tool === "text") return "text";
     if (tool === "hand") return action === "panning" ? "grabbing" : "grab";
-    if (tool === "selection") return "default";
-    return "crosshair";
+    if (tool === "rect") return "crosshair";
+    return "default";
   };
 
   return (
